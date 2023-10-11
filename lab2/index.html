@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <h1>Форма для обробки даних</h1>
+    <form action="/cgi-bin/from_handler.py" method="post">
+        <label for="name">Ім'я:</label>
+        <input type="text" name="name" id="name" required><br><br>
+        <label>Стать:</label>
+        <input type="radio" name="gender" value="Чоловік" id="male"><label for="male">Чоловік</label>
+        <input type="radio" name="gender" value="Жінка" id="female"><label for="female">Жінка</label><br><br>
+        <label>Інтереси:</label>
+        <input type="checkbox" name="interests" value="Спорт" id="sport"><label for="sport">Спорт</label>
+        <input type="checkbox" name="interests" value="Ігри" id="games"><label for="games">Ігри</label>
+        <input type="checkbox" name="interests" value="Музика" id="music"><label for="music">Музика</label>
+        <input type="checkbox" name="interests" value="Кіно" id="movie"><label for="movie">Кіно</label><br><br>
+        <input type="submit" value="Відправити">
+    </form>
+</body>
+</html>
