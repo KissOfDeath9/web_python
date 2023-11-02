@@ -1,0 +1,43 @@
+
+<html>
+<head>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+
+    <title>Форма відгуку</title>
+</head>
+<body>
+    <h1>Форма відгуку</h1>
+
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        <div>
+            {{ form.name.label }}
+            {{ form.name() }}
+        </div>
+        <div>
+            {{ form.comment.label }}
+            {{ form.comment() }}
+        </div>
+        <div>
+            {{ form.submit() }}
+        </div>
+    </form>
+
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <ul class="flashes">
+                {% for message in messages %}
+                    <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
+    <h2>Залишені відгуки:</h2>
+    <ul>
+        {% for feedback in feedbacks %}
+            <li>{{ feedback.name }}: {{ feedback.comment }}</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
