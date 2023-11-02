@@ -1,5 +1,6 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 
 app = Flask(__name__)
 
@@ -7,15 +8,14 @@ app.config['SECRET_KEY'] = 'Th1sIsAS3cr3tK3y'
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///feedbacks.db'
 db = SQLAlchemy(app)
-
+migrate = Migrate(app, db)
 
 class Feedback(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50))
     comment = db.Column(db.Text)
 
-with app.app_context():
-    db.create_all()
+
 
 from flask import render_template, flash, redirect, url_for
 from forms import FeedbackForm
