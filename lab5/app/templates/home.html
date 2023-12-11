@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>{{ title }}</h1>
+    <p>Вітаю на моєму веб-сайті!</p>
+    <img src="{{ url_for('static', filename='images/welcome.jpg') }}" alt="Зображення 1" style="width: 600px; height: 300px;">>
+
+    {% include 'footer.html' %}
+{% endblock %}
