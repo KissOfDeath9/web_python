@@ -1,9 +1,11 @@
 from flask import Flask, render_template, request, redirect, url_for, json, make_response, session, flash
 import os
 from datetime import datetime
-from app.forms import LoginForm, ChangePasswordForm
+from app.forms import LoginForm, ChangePasswordForm, CreateTodoForm, RegisterForm
+from app.database import db, Todo, User
 from app import app
 import random
+import email_validator
 
 def get_user_info():
     user_os = os.name
@@ -26,39 +28,57 @@ def about():
 def skills():
     return render_template('skills.html')
 
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    form = RegisterForm()
+    if form.validate_on_submit():
+        username = form.username.data
+        email = form.email.data
+        password = form.password.data
+        confirm_password = form.confirm_password.data
+        image_file = form.image_file.data
+        if password == confirm_password:
+            new_user = User(username=username, email=email, password=password, image_file=image_file)
+            db.session.add(new_user)
+            db.session.commit()
+        flash("Аккаунт зареєстровано", category=("success"))
+        return redirect(url_for("login"))
+    return render_template("register.html", form=form)
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     form = LoginForm()
 
-    filename = os.path.join(app.static_folder, 'data', 'auth.json')
-    with open(filename) as auth_file:
-        data = json.load(auth_file)
-
-    json_name = data['name']
-    json_password = data['password']
-
     if form.validate_on_submit():
-        form_name = form.username.data
+        user = User.query.filter_by(email=form.email.data).first()
+        form_email = form.email.data
         form_password = form.password.data
         form_remember = form.remember.data
 
-        if json_name == form_name and json_password == form_password:
+        if user and user.validate_password(form_password) and user.email == form.email.data:
             if form_remember:
                 user_id = random.randint(1, 10000)
                 session['userId'] = user_id
-                session['name'] = form_name
+                session['name'] = user.username
+                session['email'] = form_email
                 session['password'] = form_password
                 flash("Вхід виконано", category=("success"))
                 return redirect(url_for('info', user=session['name']))
             else:
-                flash("Ви не позначили галочку запамʼятати, введіть дані ще раз", category=("warning"))
+                flash("Ви не запамʼятали себе, введіть дані ще раз", category=("warning"))
                 return redirect(url_for('home'))
         else:
             flash("Вхід не виконано", category=("warning"))
             return redirect(url_for('login'))
 
     return render_template('login.html', form=form)
+
+@app.route('/users')
+def users():
+    all_users = User.query.all()
+    return render_template('users.html', all_users=all_users)
+
 @app.route('/info', methods=['GET'])
 def info():
     cookies = request.cookies
@@ -151,3 +171,54 @@ def change_password():
 
     flash("Ви не ввели пароль. Спробуйте ще раз", category=("danger"))
     return redirect(url_for('info'))
+
+
+@app.route("/todo")
+def todo():
+    todo_form = CreateTodoForm()
+    todo_list = db.session.query(Todo).all()
+
+    return render_template('todo.html', todo_form=todo_form, todo_list=todo_list)
+
+
+@app.route("/create_todo", methods=['POST'])
+def create_todo():
+    todo_form = CreateTodoForm()
+
+    if todo_form.validate_on_submit():
+        new_task = todo_form.new_task.data
+        description = todo_form.description.data
+        new_todo = Todo(title=new_task, description=description, complete=False)
+        db.session.add(new_todo)
+        db.session.commit()
+        flash("Створення успішне!", category=("success"))
+        return redirect(url_for("todo"))
+
+    flash("Помилка при створенні!", category=("danger"))
+    return redirect(url_for("todo"))
+
+
+@app.route("/read_todo/<int:todo_id>")
+def read_todo(todo_id=None):
+    todo = Todo.query.get_or_404(todo_id)
+    return redirect(url_for("todo"))
+
+
+@app.route("/update_todo/<int:todo_id>")
+def update_todo(todo_id=None):
+    todo = Todo.query.get_or_404(todo_id)
+
+    todo.complete = not todo.complete
+    db.session.commit()
+    flash("Оновлення виконано!", category=("success"))
+    return redirect(url_for("todo"))
+
+
+@app.route("/delete_todo/<int:todo_id>")
+def delete_todo(todo_id=None):
+    todo = Todo.query.get_or_404(todo_id)
+
+    db.session.delete(todo)
+    db.session.commit()
+    flash("Видалення виконано!", category=("success"))
+    return redirect(url_for("todo"))

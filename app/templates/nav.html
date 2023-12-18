@@ -15,8 +15,11 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('skills') }}">Навички</a>
                     </li>
-
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('todo') }}">Todo</a>
+                    </li>
                     {% if userId %}
+                        <li class="nav-item"><a class="nav-link" href={{ url_for('users') }}> БД User </a></li>
                         <li class="nav-item"><a class="nav-link" href={{ url_for('info') }}> Профіль </a></li>
                     {% else %}
                         <li class="nav-item"><a class="nav-link" href={{ url_for('login') }}> Увійти </a></li>
