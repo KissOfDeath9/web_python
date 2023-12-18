@@ -2,11 +2,13 @@ from flask import Flask, render_template, request, redirect, url_for, json, make
 from flask_login import login_user, current_user, logout_user, login_required
 import os
 from datetime import datetime
-from app.forms import LoginForm, ChangePasswordForm, CreateTodoForm, RegisterForm
+from app.forms import LoginForm, ChangePasswordForm, CreateTodoForm, RegisterForm, UpdateAccountForm
 from app.database import db, Todo, User
-from app import app
+from app import app, bcrypt
 import random
 import email_validator
+import secrets
+
 
 def get_user_info():
     user_os = os.name
@@ -29,18 +31,21 @@ def about():
 def skills():
     return render_template('skills.html')
 
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
-        return redirect(url_for('info'))
+        return redirect(url_for('account'))
 
     form = RegisterForm()
+
     if form.validate_on_submit():
         username = form.username.data
         email = form.email.data
         password = form.password.data
         confirm_password = form.confirm_password.data
         image_file = form.image_file.data
+
         if password == confirm_password:
             new_user = User(username=username, email=email, password=password, image_file=image_file)
             db.session.add(new_user)
@@ -53,23 +58,14 @@ def register():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for('info'))
+        return redirect(url_for('account'))
 
     form = LoginForm()
 
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
-        form_email = form.email.data
-        form_password = form.password.data
-        form_remember = form.remember.data
-
-        if user and user.validate_password(form_password) and user.email == form.email.data:
-            if form_remember:
-                user_id = random.randint(1, 10000)
-                session['userId'] = user_id
-                session['name'] = user.username
-                session['email'] = form_email
-                session['password'] = form_password
+        if user and user.validate_password(form.password.data):
+            if form.remember.data:
                 login_user(user, remember=form.remember.data)
                 flash("Вхід виконано", category=("success"))
                 return redirect(url_for('account'))
@@ -81,7 +77,6 @@ def login():
             return redirect(url_for('login'))
 
     return render_template('login.html', form=form)
-
 @app.route('/users')
 @login_required
 def users():
@@ -92,21 +87,60 @@ def users():
 @login_required
 def info():
     cookies = request.cookies
-    form = ChangePasswordForm()
 
-    return render_template('info.html', cookies=cookies, form=form)
+    return render_template('info.html', cookies=cookies)
+
 @app.route('/logout')
 def logout():
-    session.pop('userId')
-    session.pop('name')
-    session.pop('password')
     logout_user()
     return redirect(url_for("login"))
 
-@app.route("/account")
+
+@app.route("/account", methods=['GET', 'POST'])
 @login_required
 def account():
-    return render_template('account.html')
+    form = UpdateAccountForm()
+    cp_form = ChangePasswordForm()
+
+    if form.validate_on_submit():
+        current_user.username = form.username.data
+        current_user.email = form.email.data
+        current_user.about_me = form.about_me.data
+
+        if form.picture.data:
+            current_user.image_file = save_picture(form.picture.data)
+
+        db.session.commit()
+        flash("Аккаунт оновлено", category=("success"))
+        return redirect(url_for('account'))
+
+    elif request.method == 'GET':
+        form.username.data = current_user.username
+        form.email.data = current_user.email
+        form.about_me.data = current_user.about_me
+
+    return render_template('account.html', form=form, cp_form=cp_form)
+
+
+def save_picture(form_picture):
+    random_hex = secrets.token_hex(8)
+    _, f_ext = os.path.splitext(form_picture.filename)
+    picture_fn = random_hex + f_ext
+    picture_path = os.path.join(app.root_path, 'static/images', picture_fn)
+    form_picture.save(picture_path)
+    return picture_fn
+
+@app.after_request
+def after_request(response):
+    if current_user.is_authenticated:
+        current_user.last_seen = datetime.now()
+        try:
+            db.session.commit()
+        except:
+            flash("Помилка при оновленні last_seen", category=("danger"))
+    return response
+
+
 def set_cookie(key, value, max_age):
     response = make_response(redirect('info'))
     response.set_cookie(key, value, max_age=max_age)
@@ -155,38 +189,33 @@ def remove_all_cookies():
     return response
 @app.route('/change_password', methods=['POST'])
 def change_password():
-    form = ChangePasswordForm()
+    cp_form = ChangePasswordForm()
 
-    if form.validate_on_submit():
-        new_password = form.password.data
-        confirm_new_password = form.confirm_password.data
-        if new_password != '':
-            if new_password == confirm_new_password:
-                session['password'] = new_password
+    if cp_form.validate_on_submit():
+        user = User.query.filter_by(email=cp_form.email.data).first()
 
-                filename = os.path.join(app.static_folder, 'data', 'auth.json')
-                with open(filename) as auth_file:
-                    data = json.load(auth_file)
+        if user:
+            new_password = cp_form.password.data
+            confirm_new_password = cp_form.confirm_password.data
 
-                new_admin_data = {
-                    'name': data['name'],
-                    'password': new_password
-                }
+            if user:
+                if new_password == confirm_new_password:
+                    hashed_password = bcrypt.generate_password_hash(new_password).decode('utf-8')
+                    user.password = hashed_password
+                    db.session.commit()
 
-                new_passwd_json = json.dumps(new_admin_data, indent=2)
+                    flash("Пароль успішно змінено", category=("success"))
+                    return redirect(url_for('account'))
+                else:
+                    flash("Паролі не збігаються", category="danger")
+        else:
+            flash("Користувача з такою поштою не існує", category="danger")
 
-                with open(filename, "w") as outfile:
-                    outfile.write(new_passwd_json)
+        flash("Ви не змінили пароль", category=("danger"))
+        return redirect(url_for('account'))
 
-                flash("Пароль успішно змінено", category=("success"))
-                return redirect(url_for('info'))
-
-            flash("Ви не змінили пароль", category=("danger"))
-            return redirect(url_for('info'))
-
-    flash("Ви не ввели пароль. Спробуйте ще раз", category=("danger"))
-    return redirect(url_for('info'))
-
+    flash("Ви не набрали пароль. Спробуйте ще раз", category=("danger"))
+    return redirect(url_for('account'))
 
 @app.route("/todo")
 @login_required
