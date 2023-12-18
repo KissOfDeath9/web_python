@@ -1,7 +1,9 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, FileField
 from wtforms.validators import DataRequired, Length, Email, Regexp, EqualTo, ValidationError
+from app import bcrypt
 from .database import User
+
 
 class LoginForm(FlaskForm):
     email = StringField("Електронна пошта", validators=[DataRequired("Це поле обовʼязкове"), Email()])

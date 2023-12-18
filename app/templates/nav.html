@@ -1,3 +1,5 @@
+{% set userId = session['userId'] %}
+
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('home') }}">Моя Сторінка</a>
@@ -18,9 +20,9 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('todo') }}">Todo</a>
                     </li>
-                    {% if userId %}
+                     {% if current_user.is_authenticated %}
                         <li class="nav-item"><a class="nav-link" href={{ url_for('users') }}> БД User </a></li>
-                        <li class="nav-item"><a class="nav-link" href={{ url_for('info') }}> Профіль </a></li>
+                        <li class="nav-item"><a class="nav-link" href={{ url_for('account') }}> Профіль </a></li>
                     {% else %}
                         <li class="nav-item"><a class="nav-link" href={{ url_for('login') }}> Увійти </a></li>
                     {% endif %}

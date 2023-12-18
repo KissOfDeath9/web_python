@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, json, make_response, session, flash
+from flask_login import login_user, current_user, logout_user, login_required
 import os
 from datetime import datetime
 from app.forms import LoginForm, ChangePasswordForm, CreateTodoForm, RegisterForm
@@ -30,6 +31,9 @@ def skills():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('info'))
+
     form = RegisterForm()
     if form.validate_on_submit():
         username = form.username.data
@@ -48,6 +52,9 @@ def register():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('info'))
+
     form = LoginForm()
 
     if form.validate_on_submit():
@@ -63,8 +70,9 @@ def login():
                 session['name'] = user.username
                 session['email'] = form_email
                 session['password'] = form_password
+                login_user(user, remember=form.remember.data)
                 flash("Вхід виконано", category=("success"))
-                return redirect(url_for('info', user=session['name']))
+                return redirect(url_for('account'))
             else:
                 flash("Ви не запамʼятали себе, введіть дані ще раз", category=("warning"))
                 return redirect(url_for('home'))
@@ -75,11 +83,13 @@ def login():
     return render_template('login.html', form=form)
 
 @app.route('/users')
+@login_required
 def users():
     all_users = User.query.all()
     return render_template('users.html', all_users=all_users)
 
 @app.route('/info', methods=['GET'])
+@login_required
 def info():
     cookies = request.cookies
     form = ChangePasswordForm()
@@ -90,8 +100,13 @@ def logout():
     session.pop('userId')
     session.pop('name')
     session.pop('password')
+    logout_user()
     return redirect(url_for("login"))
 
+@app.route("/account")
+@login_required
+def account():
+    return render_template('account.html')
 def set_cookie(key, value, max_age):
     response = make_response(redirect('info'))
     response.set_cookie(key, value, max_age=max_age)
@@ -174,6 +189,7 @@ def change_password():
 
 
 @app.route("/todo")
+@login_required
 def todo():
     todo_form = CreateTodoForm()
     todo_list = db.session.query(Todo).all()
