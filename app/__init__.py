@@ -1,5 +1,5 @@
 from flask import Flask
-from .extensions import db, migrate, bcrypt, login_manager, jwt
+from .extensions import db, migrate, bcrypt, login_manager,jwt
 from config import config
 
 app = Flask(__name__)
@@ -51,5 +51,11 @@ def create_app(config_name='default'):
 
         from .api import api_blueprint
         app.register_blueprint(api_blueprint, url_prefix='/api')
+
+        from .accounts_api import accounts_api_blueprint
+        app.register_blueprint(accounts_api_blueprint, url_prefix='/accounts_api')
+
+        from .swagger import swaggerui_blueprint
+        app.register_blueprint(swaggerui_blueprint, url_prefix='/swagger')
 
         return app
