@@ -13,10 +13,10 @@
         {% if current_user.last_seen %}
             <p>Last Seen: {{ current_user.last_seen }}</p>
         {% endif %}
-        <form id="logoutButton" action={{ url_for('info') }}>
+        <form id="logoutButton" action={{ url_for('account_bp.info') }}>
             <input class="btn btn-primary btn-xl" type="submit" value="Перейти в info" />
         </form>
-        <form id="logoutButton" action={{ url_for('logout') }}>
+        <form id="logoutButton" action={{ url_for('auth_bp.logout') }}>
             <input class="btn btn-primary btn-xl" type="submit" value="Вийти" />
         </form>
     </div>
@@ -29,7 +29,7 @@
 
         <div class="row justify-content-center">
             <div class="col-lg-8 col-xl-7">
-                <form id="contactForm" action={{url_for("account")}} method="POST" novalidate enctype="multipart/form-data">
+                <form id="contactForm" action={{url_for("account_bp.account")}} method="POST" novalidate enctype="multipart/form-data">
                     {% from "_render_field.html" import render_field %}
                     {{form.hidden_tag()}}
                     <div class="form-floating mb-3">

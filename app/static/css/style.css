@@ -11,3 +11,13 @@ body {
 .footer {
     margin-top: auto;
 }
+
+
+.dropdown-menu {
+    background-color: #343a40;
+}
+
+
+.dropdown-menu .nav-link.active {
+    background-color: #495057; /
+}
